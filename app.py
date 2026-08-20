@@ -1,38 +1,46 @@
 from flask import Flask, render_template, request, jsonify
-import sqlite3
+
 import config
-from database import get_db_connection, init_db
+from database import init_db
+from services.auth_service import AuthService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 
 init_db()
+auth_service = AuthService()
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
-# "<h1>Bienvenido a Legacy OrderHub API v1.0</h1><p>Estado del sistema: Producción con Deuda Técnica</p>"
+
 
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json() or {}
     username = data.get('username')
     password = data.get('password')
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-    print(f"[LOG LEGADO]: Ejecutando consulta SQL sin sanitizar: {query}")
-    
-    try:
-        user = cursor.execute(query).fetchone()
-        conn.close()
-        if user:
-            return jsonify({"status": "success", "user": dict(user)}), 200
+
+    if not username or not password:
+        return jsonify({"status": "error", "message": "Debe enviar usuario y contraseña"}), 400
+
+    user = auth_service.authenticate(username, password)
+    if not user:
         return jsonify({"status": "error", "message": "Credenciales inválidas"}), 401
-    except Exception as e:
-        return jsonify({"status": "error", "exception": str(e)}), 500
+
+    return jsonify({
+        "status": "success",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "role": user["role"]
+        }
+    }), 200
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 @app.route('/create_order', methods=['POST'])
 def create_order():
