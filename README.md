@@ -49,7 +49,7 @@ Evolucionar y modernizar la aplicación **Legacy OrderHub** desde su estado mono
 
 | Componente | Estado Actual (v1.0 - Legado) | Estado Objetivo (v2.0 - Modernizado) |
 | :--- | :--- | :--- |
-| **Lenguaje / Framework** | Python 3.8 / Flask Monolítico | Python 3.11+ / Flask o FastAPI modular |
+| **Lenguaje / Framework** | Python 3.8 / Flask Monolítico | Python 3.12+ / Django + Django REST Framework (Arquitectura Hexagonal) |
 | **Base de Datos** | SQLite (Sin migraciones / SQL Directo) | PostgreSQL + ORM (SQLAlchemy / Alembic) |
 | **Seguridad** | Secretos *hardcoded*, contraseñas plano | `.env` / Vault, Hash Bcrypt/Argon2, JWT |
 | **Pruebas** | Ninguna (0% coverage) | Pytest + Cobertura > 80% + Mocks de IA |
@@ -70,9 +70,9 @@ A continuación se resumen las áreas más críticas identificadas en el sistema
 
 ---
 
-## Guía de Inicio Rápido (Entorno Legado Local)
+## Guía de Inicio Rápido (Django)
 
-## La API estará disponible en http://localhost:5000.
+## La API estará disponible en http://localhost:8000.
 
 ### Reglas del Proyecto Durante el Curso
 
@@ -85,7 +85,7 @@ A continuación se resumen las áreas más críticas identificadas en el sistema
 ¡Bienvenido/a al proceso de modernización! El éxito de la operación depende de tu capacidad para diagnosticar, refactorizar y automatizar.
 
 ### Requisitos Previos
-* Python 3.8 o superior instalado.
+* Python 3.12 o superior instalado.
 * Git.
 
 ### Pasos para Ejecutar
@@ -93,6 +93,7 @@ A continuación se resumen las áreas más críticas identificadas en el sistema
    ```bash
    git clone [https://github.com/tu-usuario/legacy-orderhub.git](https://github.com/tu-usuario/legacy-orderhub.git)
    cd legacy-orderhub
+   ```
 2. Crear y activar un entorno virtual:
    ```bash
    python -m venv venv
@@ -100,10 +101,25 @@ A continuación se resumen las áreas más críticas identificadas en el sistema
    source venv/bin/activate
    # En Windows:
    venv\Scripts\activate
+   ```
+3. Instalar las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Copiar `.env.example` a `.env` (y generar un `DJANGO_SECRET_KEY` propio si vas a desplegar):
+   ```bash
+   cp .env.example .env
+   ```
+5. Aplicar las migraciones (crea la base de datos SQLite y siembra los datos iniciales):
+   ```bash
+   python manage.py migrate
+   ```
+6. Levantar el servidor de desarrollo:
+   ```bash
+   python manage.py runserver
+   ```
+7. Ejecutar las pruebas:
+   ```bash
+   python manage.py test
+   ```
 
-3.Instalar las dependencias legadas:
-  ```bash
-  pip install -r requirements.txt
-   
-
-   
