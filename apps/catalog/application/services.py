@@ -10,3 +10,6 @@ class CatalogService:
             raise ValueError("Faltan datos para crear el producto")
 
         return self._product_repository.create(name, float(price), int(stock))
+
+    def list_products(self):
+        return self._product_repository.list_all()

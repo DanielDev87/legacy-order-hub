@@ -1,16 +1,28 @@
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.catalog.api.serializers import CreateProductRequestSerializer
+from apps.catalog.api.serializers import (
+    CreateProductRequestSerializer,
+    ProductSerializer,
+)
 from apps.catalog.application.services import CatalogService
 from apps.catalog.infrastructure.repositories import DjangoProductRepository
 from common.api.permissions import IsAdminRole
 
 
-class CreateProductView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminRole]
+class ProductListCreateView(APIView):
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated(), IsAdminRole()]
+        return [AllowAny()]
+
+    def get(self, request):
+        service = CatalogService(product_repository=DjangoProductRepository())
+        products = service.list_products()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         serializer = CreateProductRequestSerializer(data=request.data)

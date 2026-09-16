@@ -12,3 +12,6 @@ class ProductRepositoryPort(abc.ABC):
 
     @abc.abstractmethod
     def update_stock(self, product_id: int, new_stock: int) -> None: ...
+
+    @abc.abstractmethod
+    def list_all(self) -> list[Product]: ...

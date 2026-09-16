@@ -16,3 +16,9 @@ class DjangoProductRepository(ProductRepositoryPort):
 
     def update_stock(self, product_id: int, new_stock: int) -> None:
         ProductModel.objects.filter(id=product_id).update(stock=new_stock)
+
+    def list_all(self) -> list[Product]:
+        return [
+            Product(id=row.id, name=row.name, price=row.price, stock=row.stock)
+            for row in ProductModel.objects.all()
+        ]

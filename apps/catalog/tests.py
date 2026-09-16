@@ -57,6 +57,25 @@ class CreateProductViewTests(APITestCase):
         self.assertEqual(response.status_code, 400)
 
 
+class ProductListViewTests(APITestCase):
+    def test_list_products_is_public_and_returns_price_and_stock(self):
+        ProductModel.objects.create(name="Teclado Mecanico", price=250.0, stock=7)
+
+        response = self.client.get("/products")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        created = next(p for p in body if p["name"] == "Teclado Mecanico")
+        self.assertEqual(created["price"], 250.0)
+        self.assertEqual(created["stock"], 7)
+
+    def test_list_products_does_not_require_authentication(self):
+        response = self.client.get("/products")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.json(), list)
+
+
 class CatalogServiceTests(TestCase):
     def test_create_product_persists_via_repository(self):
         service = CatalogService(product_repository=DjangoProductRepository())
@@ -72,3 +91,13 @@ class CatalogServiceTests(TestCase):
 
         with self.assertRaises(ValueError):
             service.create_product("", 10.0, 1)
+
+    def test_list_products_returns_created_products(self):
+        service = CatalogService(product_repository=DjangoProductRepository())
+        service.create_product("Teclado Gamer", 45.0, 10)
+        service.create_product("Mousepad", 15.0, 20)
+
+        products = service.list_products()
+
+        self.assertIn("Teclado Gamer", {p.name for p in products})
+        self.assertIn("Mousepad", {p.name for p in products})

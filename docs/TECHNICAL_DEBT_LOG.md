@@ -66,7 +66,14 @@ Las rutas `/create_order` y `/get_all_orders_legacy` estaban declaradas **despu�
 
 **Estado:** parcialmente remediado en esta entrega (RF-01.3, RF-01.4). `/login` emite un par de tokens JWT (`djangorestframework-simplejwt`) con expiración (`access`: 15 min, `refresh`: 1 día). La creación de productos (`POST /products`) exige un token válido y rol `admin` (`common/api/permissions.py::IsAdminRole`). El resto de endpoints (`/create_order`, `/get_all_orders_legacy`) permanece público de forma deliberada — está fuera del alcance de RF-01.4, que solo pide restringir operaciones administrativas como la creación de productos.
 
-## 6. Ausencia de pruebas y de análisis estático (Alto)
+## 6. Auditoría de seguridad RNF-02 (confirmación, tercera entrega)
+
+Se auditó el código fuente completo (`grep` sobre `apps/`, `config/`, `common/`) buscando: (a) uso de SQL crudo (`cursor.execute`, `.raw(`, `connection.cursor`) y (b) credenciales/secretos hardcoded. Resultado:
+
+- **RNF-02.2 (SQLi/OWASP):** cero resultados de SQL crudo — todo el acceso a datos pasa por el ORM de Django (`apps/*/infrastructure/repositories.py`), que parametriza las consultas por diseño. No queda ninguna ruta de construcción manual de queries en el proyecto.
+- **RNF-02.1 (cero secretos hardcoded):** `SECRET_KEY` se lee desde `.env` vía `django-environ` (`config/settings.py`); `.env` está en `.gitignore` y solo se commitea `.env.example` con placeholders. Las únicas cadenas relacionadas con contraseñas encontradas en el código son nombres de parámetros/métodos (`set_password`, `check_password`, `make_password`) y los valores de seed de desarrollo (`admin123`, `123456` en `apps/users/migrations/0002_seed_data.py`), que son datos de fixture para el entorno local, no secretos de producción, y de todas formas se almacenan hasheados (ver punto 2).
+
+## 7. Ausencia de pruebas y de análisis estático (Alto)
 
 **Ubicación original:** el legado no tenía ningún archivo de test funcional (solo un stub vacío) ni configuración de linters.
 

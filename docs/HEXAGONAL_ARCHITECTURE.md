@@ -76,8 +76,15 @@ user = service.authenticate(**serializer.validated_data)
 +----------------------------+
 ```
 
-## Alcance de esta migración
-Esta migración replica la funcionalidad existente (`/`, `/login`, `/create_order`, `/get_all_orders_legacy`) sobre Django, corrige el bug legado por el cual `/create_order` y `/get_all_orders_legacy` nunca se registraban en Flask (estaban declaradas después de `app.run()`), y mueve el `SECRET_KEY` a variables de entorno (`.env`, vía `django-environ`). **No** incluye todavía hashing de contraseñas, JWT, roles, PostgreSQL, Docker/Kubernetes, CI/CD ni observabilidad — esos siguen siendo el alcance de HU-02 en adelante.
+## Alcance acumulado
+
+**Primera entrega** (migración base): replica la funcionalidad existente (`/`, `/login`, `/create_order`, `/get_all_orders_legacy`) sobre Django, corrige el bug legado por el cual `/create_order` y `/get_all_orders_legacy` nunca se registraban en Flask (estaban declaradas después de `app.run()`), y mueve el `SECRET_KEY` a variables de entorno (`.env`, vía `django-environ`).
+
+**Segunda entrega** (RF-01.2/01.3/01.4, RNF-01.2/01.3): contraseñas hasheadas con Argon2 (`AbstractBaseUser` + `PASSWORD_HASHERS`), sesión gestionada con JWT (`djangorestframework-simplejwt`, `/login` + `/token/refresh`), creación de productos restringida a rol `admin` (`common/api/permissions.py::IsAdminRole`), cobertura de pruebas ≥80% y lint (`flake8`/`black`) limpio.
+
+**Tercera entrega** (RF-02, RNF-02): `apps/catalog/api/` gana superficie HTTP real con `GET /products` (público, lista productos con precio y stock actual — antes solo existía `POST /products` para crear). El descuento de stock y el rechazo de compras por stock insuficiente (`OrderService.create_order`) ya estaban implementados desde la primera entrega y se confirmaron con pruebas dedicadas. Se auditó el código para confirmar ausencia de SQL crudo (todo vía ORM) y de secretos hardcoded (todo vía `.env`) — ver `docs/TECHNICAL_DEBT_LOG.md`.
+
+Pendiente para próximas entregas: PostgreSQL, Docker/Kubernetes, CI/CD, observabilidad.
 
 ## Beneficios
 - Cada contexto (usuarios, catálogo, órdenes) puede evolucionar de forma independiente.
