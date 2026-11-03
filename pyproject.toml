@@ -6,3 +6,8 @@ extend-exclude = '''
   | migrations
 )/
 '''
+
+[tool.bandit]
+exclude_dirs = ["venv", "migrations"]
+# B101 (assert) solo aparece en tests.
+skips = ["B101"]
