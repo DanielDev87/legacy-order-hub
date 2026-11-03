@@ -18,7 +18,7 @@ class OrderService:
 
     @transaction.atomic
     def create_order(self, user_id: int, product_id: int, quantity: int) -> Order:
-        product = self._product_repository.get_by_id(product_id)
+        product = self._product_repository.get_by_id_for_update(product_id)
         if product is None:
             raise ProductNotFoundError("Producto no encontrado")
 
@@ -49,3 +49,6 @@ class OrderService:
 
     def list_orders(self) -> list[Order]:
         return self._order_repository.list_all()
+
+    def list_orders_by_user(self, user_id: int) -> list[Order]:
+        return self._order_repository.list_by_user(user_id)

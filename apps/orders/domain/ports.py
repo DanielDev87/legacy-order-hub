@@ -11,3 +11,6 @@ class OrderRepositoryPort(abc.ABC):
 
     @abc.abstractmethod
     def list_all(self) -> list[Order]: ...
+
+    @abc.abstractmethod
+    def list_by_user(self, user_id: int) -> list[Order]: ...

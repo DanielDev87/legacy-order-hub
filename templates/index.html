@@ -24,17 +24,41 @@
 
     <div class="card">
         <h3>🔍 Probar Consulta de Órdenes Legadas</h3>
+        <input id="username" placeholder="usuario" value="juan">
+        <input id="password" type="password" placeholder="contraseña">
+        <button onclick="login()">Iniciar sesión</button>
         <button onclick="fetchOrders()">Cargar Órdenes desde la API (/get_all_orders_legacy)</button>
         <h4>Respuesta de la API:</h4>
         <pre id="output">// Haz clic en el botón para consultar la base de datos...</pre>
     </div>
 
     <script>
+        let accessToken = null;
+
+        async function login() {
+            const outputBlock = document.getElementById('output');
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value,
+                }),
+            });
+            const data = await response.json();
+            accessToken = data.access || null;
+            outputBlock.textContent = accessToken
+                ? "Sesión iniciada como " + data.user.username
+                : "Credenciales inválidas";
+        }
+
         async function fetchOrders() {
             const outputBlock = document.getElementById('output');
             outputBlock.textContent = "Cargando órdenes desde el servidor...";
             try {
-                const response = await fetch('/get_all_orders_legacy');
+                const response = await fetch('/get_all_orders_legacy', {
+                    headers: accessToken ? {'Authorization': 'Bearer ' + accessToken} : {},
+                });
                 const data = await response.json();
                 outputBlock.textContent = JSON.stringify(data, null, 2);
             } catch (error) {

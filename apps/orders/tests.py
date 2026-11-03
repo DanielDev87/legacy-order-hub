@@ -9,51 +9,79 @@ class OrdersApiTests(APITestCase):
         self.user = UserModel.objects.create_user(
             username="testuser", password="123456"
         )
+        self.other = UserModel.objects.create_user(username="other", password="123456")
+        self.admin = UserModel.objects.create_user(
+            username="boss", password="123456", role="admin"
+        )
         self.product = ProductModel.objects.create(
             name="Mouse USB", price=15.50, stock=5
         )
+        self.client.force_authenticate(self.user)
 
-    def test_create_order_success(self):
-        response = self.client.post(
-            "/create_order",
-            {"user_id": self.user.id, "product_id": self.product.id, "quantity": 2},
-            format="json",
-        )
+    def _order(self, **payload):
+        payload.setdefault("product_id", self.product.id)
+        return self.client.post("/create_order", payload, format="json")
+
+    def test_create_order_success_uses_authenticated_user(self):
+        response = self._order(quantity=2)
 
         self.assertEqual(response.status_code, 201)
-        body = response.json()
-        self.assertEqual(body["total"], 31.0)
+        self.assertEqual(response.json()["total"], 31.0)
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 3)
+        orders = self.client.get("/get_all_orders_legacy").json()
+        self.assertEqual(orders[0]["user_id"], self.user.id)
+
+    def test_create_order_ignores_user_id_in_body(self):
+        self._order(quantity=1, user_id=self.other.id)
+
+        orders = self.client.get("/get_all_orders_legacy").json()
+        self.assertEqual(orders[0]["user_id"], self.user.id)
+
+    def test_create_order_requires_authentication(self):
+        self.client.force_authenticate(None)
+
+        self.assertEqual(self._order(quantity=1).status_code, 401)
 
     def test_create_order_insufficient_stock_returns_400(self):
-        response = self.client.post(
-            "/create_order",
-            {"user_id": self.user.id, "product_id": self.product.id, "quantity": 100},
-            format="json",
-        )
+        self.assertEqual(self._order(quantity=100).status_code, 400)
+
+    def test_create_order_product_not_found_returns_404(self):
+        self.assertEqual(self._order(product_id=9999).status_code, 404)
+
+    def test_create_order_invalid_quantity_returns_400(self):
+        for quantity in (0, -3, "abc"):
+            with self.subTest(quantity=quantity):
+                self.assertEqual(self._order(quantity=quantity).status_code, 400)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+
+    def test_create_order_missing_product_returns_400(self):
+        response = self.client.post("/create_order", {"quantity": 1}, format="json")
 
         self.assertEqual(response.status_code, 400)
 
-    def test_create_order_product_not_found_returns_404(self):
-        response = self.client.post(
-            "/create_order",
-            {"user_id": self.user.id, "product_id": 9999, "quantity": 1},
-            format="json",
-        )
+    def test_list_orders_requires_authentication(self):
+        self.client.force_authenticate(None)
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.client.get("/get_all_orders_legacy").status_code, 401)
 
-    def test_get_all_orders_legacy_returns_created_orders(self):
-        self.client.post(
-            "/create_order",
-            {"user_id": self.user.id, "product_id": self.product.id, "quantity": 1},
-            format="json",
-        )
+    def test_client_only_sees_own_orders(self):
+        self._order(quantity=1)
+        self.client.force_authenticate(self.other)
+        self._order(quantity=1)
 
-        response = self.client.get("/get_all_orders_legacy")
+        body = self.client.get("/get_all_orders_legacy").json()
 
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
         self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["product_id"], self.product.id)
+        self.assertEqual(body[0]["user_id"], self.other.id)
+
+    def test_admin_sees_all_orders(self):
+        self._order(quantity=1)
+        self.client.force_authenticate(self.other)
+        self._order(quantity=1)
+        self.client.force_authenticate(self.admin)
+
+        body = self.client.get("/get_all_orders_legacy").json()
+
+        self.assertEqual(len(body), 2)

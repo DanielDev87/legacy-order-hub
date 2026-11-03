@@ -17,6 +17,13 @@ class DjangoOrderRepository(OrderRepositoryPort):
         return row.id
 
     def list_all(self) -> list[Order]:
+        return self._to_entities(OrderModel.objects.all())
+
+    def list_by_user(self, user_id: int) -> list[Order]:
+        return self._to_entities(OrderModel.objects.filter(user_id=user_id))
+
+    @staticmethod
+    def _to_entities(rows) -> list[Order]:
         return [
             Order(
                 id=row.id,
@@ -26,5 +33,5 @@ class DjangoOrderRepository(OrderRepositoryPort):
                 total=row.total,
                 status=row.status,
             )
-            for row in OrderModel.objects.all()
+            for row in rows
         ]

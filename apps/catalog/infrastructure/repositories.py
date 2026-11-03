@@ -10,6 +10,12 @@ class DjangoProductRepository(ProductRepositoryPort):
             return None
         return Product(id=row.id, name=row.name, price=row.price, stock=row.stock)
 
+    def get_by_id_for_update(self, product_id: int) -> Product | None:
+        row = ProductModel.objects.select_for_update().filter(id=product_id).first()
+        if row is None:
+            return None
+        return Product(id=row.id, name=row.name, price=row.price, stock=row.stock)
+
     def create(self, name: str, price: float, stock: int) -> int:
         row = ProductModel.objects.create(name=name, price=price, stock=stock)
         return row.id

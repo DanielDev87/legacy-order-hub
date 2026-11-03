@@ -8,6 +8,9 @@ class ProductRepositoryPort(abc.ABC):
     def get_by_id(self, product_id: int) -> Product | None: ...
 
     @abc.abstractmethod
+    def get_by_id_for_update(self, product_id: int) -> Product | None: ...
+
+    @abc.abstractmethod
     def create(self, name: str, price: float, stock: int) -> int: ...
 
     @abc.abstractmethod
