@@ -4,7 +4,8 @@ from apps.catalog.domain.exceptions import ProductNotFoundError
 from apps.catalog.domain.ports import ProductRepositoryPort
 from apps.orders.domain.entities import Order
 from apps.orders.domain.exceptions import InsufficientStockError
-from apps.orders.domain.ports import OrderRepositoryPort
+from apps.orders.domain.ports import NotificationPort, OrderRepositoryPort
+from common.observability.metrics import ORDERS_CREATED
 
 
 class OrderService:
@@ -12,8 +13,10 @@ class OrderService:
         self,
         order_repository: OrderRepositoryPort,
         product_repository: ProductRepositoryPort,
+        notifier: NotificationPort | None = None,
     ):
         self._order_repository = order_repository
+        self._notifier = notifier
         self._product_repository = product_repository
 
     @transaction.atomic
@@ -36,9 +39,7 @@ class OrderService:
 
         self._product_repository.update_stock(product_id, product.stock - quantity)
 
-        print(f"[LOG LEGADO]: Notificando correo para la orden ID: {order_id}...")
-
-        return Order(
+        order = Order(
             id=order_id,
             user_id=user_id,
             product_id=product_id,
@@ -46,6 +47,10 @@ class OrderService:
             total=total,
             status="PENDING",
         )
+        ORDERS_CREATED.inc()
+        if self._notifier is not None:
+            transaction.on_commit(lambda: self._notifier.order_created(order))
+        return order
 
     def list_orders(self) -> list[Order]:
         return self._order_repository.list_all()

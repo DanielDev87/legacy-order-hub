@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from rest_framework.test import APITestCase
 
 from apps.catalog.models import ProductModel
@@ -85,3 +87,19 @@ class OrdersApiTests(APITestCase):
         body = self.client.get("/get_all_orders_legacy").json()
 
         self.assertEqual(len(body), 2)
+
+    @patch("apps.orders.infrastructure.notifier.ThreadedLogNotifier._executor")
+    def test_notification_is_sent_after_commit_without_blocking(self, executor):
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            response = self._order(quantity=1)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(callbacks), 1)
+        executor.submit.assert_called_once()
+
+    @patch("apps.orders.infrastructure.notifier.ThreadedLogNotifier._executor")
+    def test_no_notification_when_order_is_rejected(self, executor):
+        with self.captureOnCommitCallbacks(execute=True):
+            self._order(quantity=100)
+
+        executor.submit.assert_not_called()

@@ -3,6 +3,11 @@ import abc
 from apps.orders.domain.entities import Order
 
 
+class NotificationPort(abc.ABC):
+    @abc.abstractmethod
+    def order_created(self, order: Order) -> None: ...
+
+
 class OrderRepositoryPort(abc.ABC):
     @abc.abstractmethod
     def create(
