@@ -15,3 +15,14 @@ minikube service orderhub -n orderhub --url
 - `HPA`: 2–5 réplicas al superar 70 % de CPU.
 - `Service`: NodePort 30080 → puerto 8000.
 - PostgreSQL corre como `StatefulSet` con volumen persistente.
+
+## Monitoreo (RNF-05)
+
+```bash
+kubectl apply -k k8s/monitoring/
+minikube service grafana -n orderhub --url   # usuario: admin
+```
+
+Prometheus descubre los pods con la anotación `prometheus.io/scrape` y añade la etiqueta
+`version` (stable/canary). Grafana carga el dashboard "OrderHub - Métricas RED" automáticamente.
+Para `canary_check.sh`: `kubectl -n orderhub port-forward svc/prometheus 9090:9090`.
