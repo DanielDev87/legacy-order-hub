@@ -43,19 +43,21 @@ spec:
                 name: orderhub-secret
           # Imprescindible para que el HPA calcule % de CPU.
           resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits: { cpu: 500m, memory: 256Mi }
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
           livenessProbe:
             httpGet:
               path: /healthcheck
               port: http
             initialDelaySeconds: 20
             periodSeconds: 10
-            failureThreshold: 3
+            timeoutSeconds: 5
+            failureThreshold: 6
           readinessProbe:
             httpGet:
               path: /healthcheck
               port: http
             initialDelaySeconds: 10
             periodSeconds: 5
+            timeoutSeconds: 5
             failureThreshold: 3
