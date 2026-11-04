@@ -15,6 +15,7 @@ from apps.orders.infrastructure.notifier import (
 from apps.users.models import UserModel
 
 
+@override_settings(REDIS_URL="")
 class OrdersApiTests(APITestCase):
     def setUp(self):
         self.user = UserModel.objects.create_user(

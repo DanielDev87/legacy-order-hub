@@ -8,6 +8,7 @@ extend-exclude = '''
 '''
 
 [tool.bandit]
-exclude_dirs = ["venv", "migrations"]
-# B101 (assert) solo aparece en tests.
-skips = ["B101"]
+exclude_dirs = ["venv", ".venv", "migrations"]
+# B101 (assert) y B106 (contraseña en create_user) solo aparecen en tests.py,
+# con usuarios de prueba descartables; no hay secretos reales en el código.
+skips = ["B101", "B106"]

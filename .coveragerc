@@ -8,6 +8,7 @@ omit =
     */wsgi.py
     config/settings.py
     venv/*
+    .venv/*
     */tests.py
     tests/*
 

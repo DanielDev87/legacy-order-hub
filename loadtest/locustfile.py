@@ -7,6 +7,7 @@ Uso:
 
 Credenciales por variables de entorno (no se versionan secretos).
 """
+
 import os
 
 from locust import HttpUser, between, task
