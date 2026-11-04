@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -11,15 +12,27 @@ from apps.orders.api.serializers import (
 )
 from apps.orders.application.services import OrderService
 from apps.orders.domain.exceptions import InsufficientStockError
-from apps.orders.infrastructure.notifier import ThreadedLogNotifier
+from apps.orders.infrastructure.notifier import (
+    CompositeNotifier,
+    RedisStreamNotifier,
+    ThreadedLogNotifier,
+)
 from apps.orders.infrastructure.repositories import DjangoOrderRepository
+
+
+def _build_notifier():
+    if settings.REDIS_URL:
+        return CompositeNotifier(
+            ThreadedLogNotifier(), RedisStreamNotifier(settings.REDIS_URL)
+        )
+    return ThreadedLogNotifier()
 
 
 def _build_order_service() -> OrderService:
     return OrderService(
         order_repository=DjangoOrderRepository(),
         product_repository=DjangoProductRepository(),
-        notifier=ThreadedLogNotifier(),
+        notifier=_build_notifier(),
     )
 
 

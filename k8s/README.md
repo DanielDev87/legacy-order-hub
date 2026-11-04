@@ -26,3 +26,8 @@ minikube service grafana -n orderhub --url   # usuario: admin
 Prometheus descubre los pods con la anotación `prometheus.io/scrape` y añade la etiqueta
 `version` (stable/canary). Grafana carga el dashboard "OrderHub - Métricas RED" automáticamente.
 Para `canary_check.sh`: `kubectl -n orderhub port-forward svc/prometheus 9090:9090`.
+
+## Redis y migraciones
+- `redis.yaml`: Redis 7. La app publica cada orden creada en el stream `orderhub:order_created` (`REDIS_URL`).
+- `migrate-job.yaml`: aplica las migraciones una sola vez; los pods web usan `RUN_MIGRATIONS=false`.
+  Si lo re-aplica, borre antes el Job (`kubectl -n orderhub delete job orderhub-migrate`), porque su plantilla es inmutable.

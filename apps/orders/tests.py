@@ -1,8 +1,17 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import redis
+from django.test import SimpleTestCase, override_settings
 from rest_framework.test import APITestCase
 
 from apps.catalog.models import ProductModel
+from apps.orders.api.views import _build_notifier
+from apps.orders.domain.entities import Order
+from apps.orders.infrastructure.notifier import (
+    CompositeNotifier,
+    RedisStreamNotifier,
+    ThreadedLogNotifier,
+)
 from apps.users.models import UserModel
 
 
@@ -103,3 +112,51 @@ class OrdersApiTests(APITestCase):
             self._order(quantity=100)
 
         executor.submit.assert_not_called()
+
+
+class RedisNotifierTests(SimpleTestCase):
+    ORDER = Order(id=1, user_id=2, product_id=3, quantity=1, total=9.5)
+
+    @patch("apps.orders.infrastructure.notifier.redis.Redis.from_url")
+    def test_publish_adds_event_to_stream(self, from_url):
+        notifier = RedisStreamNotifier("redis://localhost:6379/0")
+
+        notifier._publish(self.ORDER)
+
+        from_url.return_value.xadd.assert_called_once()
+        args = from_url.return_value.xadd.call_args
+        self.assertEqual(args.args[0], RedisStreamNotifier.STREAM)
+        self.assertEqual(args.args[1]["order_id"], 1)
+
+    @patch("apps.orders.infrastructure.notifier.redis.Redis.from_url")
+    def test_publish_swallows_redis_errors(self, from_url):
+        from_url.return_value.xadd.side_effect = redis.ConnectionError("down")
+        notifier = RedisStreamNotifier("redis://localhost:6379/0")
+
+        with self.assertLogs("orderhub.notifications", level="ERROR"):
+            notifier._publish(self.ORDER)
+
+    @patch("apps.orders.infrastructure.notifier.redis.Redis.from_url")
+    def test_order_created_does_not_block(self, from_url):
+        notifier = RedisStreamNotifier("redis://localhost:6379/0")
+        with patch.object(RedisStreamNotifier, "_executor") as executor:
+            notifier.order_created(self.ORDER)
+
+        executor.submit.assert_called_once()
+
+    def test_composite_notifies_all(self):
+        first, second = MagicMock(), MagicMock()
+
+        CompositeNotifier(first, second).order_created(self.ORDER)
+
+        first.order_created.assert_called_once_with(self.ORDER)
+        second.order_created.assert_called_once_with(self.ORDER)
+
+    @override_settings(REDIS_URL="")
+    def test_builder_without_redis_uses_log_notifier_only(self):
+        self.assertIsInstance(_build_notifier(), ThreadedLogNotifier)
+
+    @override_settings(REDIS_URL="redis://localhost:6379/0")
+    @patch("apps.orders.infrastructure.notifier.redis.Redis.from_url")
+    def test_builder_with_redis_uses_composite(self, from_url):
+        self.assertIsInstance(_build_notifier(), CompositeNotifier)

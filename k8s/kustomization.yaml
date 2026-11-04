@@ -5,6 +5,8 @@ resources:
   - configmap.yaml
   - secret.yaml
   - postgres.yaml
+  - redis.yaml
+  - migrate-job.yaml
   - deployment.yaml
   - service.yaml
   - hpa.yaml

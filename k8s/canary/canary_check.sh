@@ -3,7 +3,7 @@
 # Requiere Prometheus accesible (django-prometheus expone django_http_responses_total_by_status_total)
 # y que scrapee los pods con la etiqueta "version" (véase anotaciones prometheus.io/* del Deployment).
 #
-# Uso: PROM_URL=http://localhost:9090 THRESHOLD=0.01 ./loadtest/canary_check.sh
+# Uso: PROM_URL=http://localhost:9090 THRESHOLD=0.01 k8s/canary/canary_check.sh
 set -eu
 
 PROM_URL="${PROM_URL:-http://localhost:9090}"

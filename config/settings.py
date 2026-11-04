@@ -92,6 +92,9 @@ else:
         }
     }
 
+# Redis (opcional): si está definido, los eventos de órdenes se publican en un stream.
+REDIS_URL = env("REDIS_URL", default="")
+
 AUTH_USER_MODEL = "users.UserModel"
 
 PASSWORD_HASHERS = [
