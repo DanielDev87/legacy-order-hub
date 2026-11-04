@@ -1,11 +1,12 @@
-# Ejecuta las migraciones una sola vez (los pods web arrancan con RUN_MIGRATIONS=false).
+# Aplica las migraciones una sola vez. Los pods web usan RUN_MIGRATIONS=false.
+# Nota: "command" reemplaza el ENTRYPOINT de la imagen, por eso se invoca migrate directamente.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: orderhub-migrate
   namespace: orderhub
 spec:
-  backoffLimit: 6
+  backoffLimit: 10
   template:
     spec:
       restartPolicy: OnFailure
@@ -16,12 +17,9 @@ spec:
         - name: migrate
           image: legacy-order-hub:latest
           imagePullPolicy: IfNotPresent
-          env:
-            - name: RUN_MIGRATIONS
-              value: "true"
           envFrom:
             - configMapRef:
                 name: orderhub-config
             - secretRef:
                 name: orderhub-secret
-          command: ["python", "manage.py", "check", "--database", "default"]
+          command: ["python", "manage.py", "migrate", "--noinput"]
