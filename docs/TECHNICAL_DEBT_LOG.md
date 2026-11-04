@@ -77,4 +77,16 @@ Se auditó el código fuente completo (`grep` sobre `apps/`, `config/`, `common/
 
 **Ubicación original:** el legado no tenía ningún archivo de test funcional (solo un stub vacío) ni configuración de linters.
 
-**Estado:** parcialmente remediado en esta entrega (RNF-01.2, RNF-01.3). Cobertura de pruebas actual ≥80% (`coverage run manage.py test` + `coverage report --fail-under=80`), verificado con `flake8`/`black` sin advertencias. Pendiente para entregas futuras: SAST dedicado (`bandit`), pipeline de CI (HU-05).
+**Estado:** parcialmente remediado en esta entrega (RNF-01.2, RNF-01.3). Cobertura de pruebas actual ≥80% (`coverage run manage.py test` + `coverage report --fail-under=80`), verificado con `flake8`/`black` sin advertencias. SAST con `bandit` y pipeline de CI (GitHub Actions) incorporados en HU-05.
+
+## 8. Infraestructura, despliegue y observabilidad (Alto)
+
+**Ubicación original:** ejecución directa en el host, despliegue manual, `print()` como único registro.
+
+**Estado:** remediado.
+- Contenerización multi-stage, usuario no root y `docker-compose.yml` con PostgreSQL y Redis (HU-06).
+- Manifiestos de Kubernetes con HPA (2–5 réplicas, 70 % CPU), sondas en `/healthcheck` y Job de migraciones (HU-07).
+- Logs JSON, `/metrics`, Prometheus y dashboard Grafana RED (HU-08, RNF-05).
+- Canary 90/10 con rollback automático por tasa de error > 1 % y pruebas de carga con Locust (HU-09).
+
+**Deuda residual:** `DJANGO_ALLOWED_HOSTS: "*"` en el ConfigMap de Kubernetes (acotar al dominio real); `secret.yaml` es solo una plantilla (en producción, usar un gestor de secretos); los manifiestos se validan con `kubeconform` en CI pero no se han desplegado en un clúster real.

@@ -1,8 +1,8 @@
 # Legacy OrderHub - Proyecto Base de Modernización y Mantenimiento
 
 > **Asignatura:** Actualización y Mantenimiento de Software  
-> **Estado del Sistema:** Producción Legada (v1.0.0-legacy) — *Alta Deuda Técnica*  
-> **Nivel de Cobertura de Pruebas:** 0%  
+> **Estado del Sistema:** v2.0 — Django + DRF (arquitectura hexagonal), contenerizado y desplegable en Kubernetes  
+> **Cobertura de pruebas:** mínimo 80 % exigido por el CI (`coverage report --fail-under=80`)  
 
 ---
 
@@ -50,12 +50,12 @@ Evolucionar y modernizar la aplicación **Legacy OrderHub** desde su estado mono
 | Componente | Estado Actual (v1.0 - Legado) | Estado Objetivo (v2.0 - Modernizado) |
 | :--- | :--- | :--- |
 | **Lenguaje / Framework** | Python 3.8 / Flask Monolítico | Python 3.12+ / Django + Django REST Framework (Arquitectura Hexagonal) |
-| **Base de Datos** | SQLite (Sin migraciones / SQL Directo) | PostgreSQL + ORM (SQLAlchemy / Alembic) |
+| **Base de Datos** | SQLite (Sin migraciones / SQL Directo) | PostgreSQL + Django ORM y migraciones (SQLite en desarrollo local) |
 | **Seguridad** | Secretos *hardcoded*, contraseñas plano | `.env` / Vault, Hash Bcrypt/Argon2, JWT |
-| **Pruebas** | Ninguna (0% coverage) | Pytest + Cobertura > 80% + Mocks de IA |
+| **Pruebas** | Ninguna (0% coverage) | `manage.py test` + coverage >= 80 % |
 | **Infraestructura** | Ejecución local/servidor directo | Docker Compose + Kubernetes (Minikube/k3s) |
 | **CI / CD** | Despliegue manual | GitHub Actions / GitLab CI + SonarQube |
-| **Observabilidad** | `print()` en consola | Prometheus + Grafana + Structured Logs (JSON) |
+| **Observabilidad** | `print()` en consola | Logs JSON + `/metrics` (Prometheus) + dashboard Grafana (RED) |
 
 ---
 
@@ -123,3 +123,30 @@ A continuación se resumen las áreas más críticas identificadas en el sistema
    python manage.py test
    ```
 
+
+---
+
+## Despliegue y operación
+
+### Docker Compose (API + PostgreSQL + Redis)
+```bash
+cp .env.example .env        # defina DJANGO_SECRET_KEY y POSTGRES_PASSWORD
+docker compose up --build   # API en http://localhost:8000
+```
+
+### Kubernetes (Minikube / k3s)
+Manifiestos en [`k8s/`](k8s/README.md): Deployment, Service, ConfigMap, Secret, HPA (2–5 réplicas al 70 % CPU),
+PostgreSQL, Redis y Job de migraciones. Monitoreo (Prometheus + Grafana) en `k8s/monitoring/`.
+Despliegue Canary 90/10 con rollback automático en `k8s/canary/`.
+
+### Pruebas de carga
+Script de Locust en [`loadtest/`](loadtest/README.md).
+
+### Endpoints operativos
+`/healthcheck` (liveness/readiness) y `/metrics` (Prometheus).
+
+### Documentación
+[`docs/ANALYSIS_AND_REQUIREMENTS.md`](docs/ANALYSIS_AND_REQUIREMENTS.md) ·
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
+[`docs/HEXAGONAL_ARCHITECTURE.md`](docs/HEXAGONAL_ARCHITECTURE.md) ·
+[`docs/TECHNICAL_DEBT_LOG.md`](docs/TECHNICAL_DEBT_LOG.md)

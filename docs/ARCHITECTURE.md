@@ -31,17 +31,29 @@ C4Container
     title Legacy OrderHub — Contenedores (actual)
 
     Person(usuario, "Usuario (cliente o admin)")
+    Person(sre, "Operador / SRE")
 
-    System_Boundary(orderhub, "Legacy OrderHub") {
+    System_Boundary(orderhub, "Legacy OrderHub (namespace orderhub en Kubernetes)") {
+        Container(ingress, "Ingress NGINX", "Canary 90/10", "Reparte tráfico entre la versión estable y el canary")
+        Container(api, "API REST", "Django REST Framework + Gunicorn", "Expone /login, /token/refresh, /create_order, /get_all_orders_legacy, /products, /healthcheck, /metrics. HPA 2-5 réplicas")
         Container(dashboard, "Dashboard", "Django Template + JS", "Panel de monitoreo visual servido en '/'")
-        Container(api, "API REST", "Django REST Framework", "Expone /login, /token/refresh, /create_order, /get_all_orders_legacy, /products")
-        ContainerDb(db, "Base de datos", "SQLite (dev)", "Tablas users, products, orders")
+        ContainerDb(db, "Base de datos", "PostgreSQL 16 (SQLite en dev)", "Tablas users, products, orders")
+        ContainerDb(redis, "Redis", "Redis 7", "Stream orderhub:order_created con eventos de órdenes")
+        Container(prom, "Prometheus", "Prometheus", "Scrapea /metrics de los pods; etiqueta version stable/canary")
+        Container(grafana, "Grafana", "Grafana", "Dashboard de métricas RED")
+        Container(guard, "canary-guard", "CronJob", "Si la tasa 5xx del canary > 1 %, hace rollback automático")
     }
 
+    Rel(usuario, ingress, "HTTPS + JWT Bearer")
+    Rel(ingress, api, "HTTP")
     Rel(usuario, dashboard, "Consulta", "HTTPS")
-    Rel(usuario, api, "Login / operaciones", "HTTPS + JWT Bearer")
-    Rel(dashboard, api, "fetch()", "HTTP/JSON")
     Rel(api, db, "Lee/Escribe", "Django ORM")
+    Rel(api, redis, "Publica eventos (asíncrono)", "XADD")
+    Rel(prom, api, "Scrape", "HTTP /metrics")
+    Rel(grafana, prom, "Consulta", "PromQL")
+    Rel(guard, prom, "Consulta tasa de error")
+    Rel(guard, ingress, "Elimina el Ingress canary si falla")
+    Rel(sre, grafana, "Observa")
 ```
 
 Cada uno de los tres contextos delimitados (`apps/users`, `apps/catalog`, `apps/orders`) implementa internamente arquitectura hexagonal (dominio → aplicación → infraestructura → adaptador HTTP) — ver [`HEXAGONAL_ARCHITECTURE.md`](HEXAGONAL_ARCHITECTURE.md) para el desglose de capas.
