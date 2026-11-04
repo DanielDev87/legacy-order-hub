@@ -18,10 +18,10 @@ Tu rol como ingeniero/a en este curso será asumir el mantenimiento de este sist
 
 ## Objetivos del Proyecto
 
-### 🎯 Objetivo General
+### Objetivo General
 Evolucionar y modernizar la aplicación **Legacy OrderHub** desde su estado monolítico vulnerable hasta una arquitectura escalable, segura, observadamente monitoreada y desplegada mediante flujos automatizados de CI/CD.
 
-### 🎯 Objetivos Específicos por Unidad
+### Objetivos Específicos por Unidad
 
 1. **Unidad I: Modernización Inteligente e Ingeniería Inversa**
    * Realizar auditorías de código estático y dinámico para mapear la deuda técnica y las vulnerabilidades críticas.
@@ -150,3 +150,9 @@ Script de Locust en [`loadtest/`](loadtest/README.md).
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
 [`docs/HEXAGONAL_ARCHITECTURE.md`](docs/HEXAGONAL_ARCHITECTURE.md) ·
 [`docs/TECHNICAL_DEBT_LOG.md`](docs/TECHNICAL_DEBT_LOG.md)
+
+### Despliegue en Render (CI/CD)
+`render.yaml` define el servicio web (Docker) y la base PostgreSQL. Flujo:
+1. Cada push a `main` o `Dev` ejecuta el CI (estilo, SAST, pruebas con cobertura >= 80 %, build de la imagen y prueba de humo contra PostgreSQL).
+2. Render solo despliega el commit cuando esos checks pasan (`autoDeployTrigger: checksPass`) y verifica `/healthcheck`.
+3. Las contraseñas iniciales de `admin` y `juan` se generan en Render (`SEED_ADMIN_PASSWORD`, `SEED_USER_PASSWORD`).
